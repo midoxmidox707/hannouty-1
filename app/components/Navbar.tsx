@@ -16,10 +16,15 @@ export default function Navbar() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+useEffect(() => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setLoading(false); return }
+      
+      if (!user) {
+        setProfile(null)
+        setLoading(false)
+        return
+      }
 
       const { data } = await supabase
         .from('profiles')
@@ -33,13 +38,18 @@ export default function Navbar() {
 
     fetchProfile()
 
-    const { data: listener } = supabase.auth.onAuthStateChange(() => {
-      fetchProfile()
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        setProfile(null)
+        setLoading(false)
+      } else {
+        fetchProfile()
+      }
     })
 
     return () => listener.subscription.unsubscribe()
   }, [])
-
+  
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/login')
